@@ -5,7 +5,7 @@ import {
     GAME_SERVER_HOST,
 } from '../Config';
 import { GameManager } from '../../Framework/Core/GameManager';
-import { AbstractNetworkLevel } from '../../Framework/Level/AbstractNetworkLevel';
+import { AbstractNetworkingLevel } from '../../Framework/Level/AbstractNetworkingLevel';
 import { Board } from '../Gameplay/Board';
 import {
     SessionRoomState,
@@ -13,9 +13,9 @@ import {
     TOKEN_MOVE_ACTION,
     WAITING_FOR_PLAYER_DICE_ROLL_STATE,
     WAITING_FOR_PLAYER_TOKEN_MOVE_STATE,
-} from '../Network/Rooms/Session/SessionRoomState';
+} from '../Networking/Rooms/Session/SessionRoomState';
 
-export class SessionLevel extends AbstractNetworkLevel {
+export class SessionLevel extends AbstractNetworkingLevel {
     // General
     protected _playerIndex: number = 1;
     protected _skybox: BABYLON.Mesh;
@@ -47,7 +47,7 @@ export class SessionLevel extends AbstractNetworkLevel {
         this._prepareCamera();
         this._prepareHighlightLayer();
         this._prepareEvents();
-        this._prepareNetworkEvents();
+        this._prepareNetworkingEvents();
     }
 
     protected _prepareSkybox() {
@@ -316,7 +316,7 @@ export class SessionLevel extends AbstractNetworkLevel {
        });
     }
 
-    protected _prepareNetworkEvents() {
+    protected _prepareNetworkingEvents() {
         const scene = this.getScene();
         let diceMesh = scene.getMeshByName('dice');
 

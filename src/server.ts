@@ -7,8 +7,8 @@ import { createServer } from "http";
 import * as BABYLON from 'babylonjs';
 
 import { GAME_SERVER_PORT } from './Game/Config';
-import { LobbyRoom } from './Game/Network/Rooms/Lobby/LobbyRoom';
-import { SessionRoom } from './Game/Network/Rooms/Session/SessionRoom';
+import { LobbyRoom } from './Game/Networking/Rooms/Lobby/LobbyRoom';
+import { SessionRoom } from './Game/Networking/Rooms/Session/SessionRoom';
 
 const gameServer = new Server({
   server: createServer(),

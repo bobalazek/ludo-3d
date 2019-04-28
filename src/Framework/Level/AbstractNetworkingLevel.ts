@@ -2,8 +2,7 @@ import { Client, Room } from 'colyseus.js';
 
 import { AbstractLevel } from '../../Framework/Level/AbstractLevel';
 
-export class AbstractNetworkLevel extends AbstractLevel {
-    // Network
+export class AbstractNetworkingLevel extends AbstractLevel {
     /** Is the networking enabled? */
     protected _serverEnabled: boolean = false;
 
@@ -26,10 +25,10 @@ export class AbstractNetworkLevel extends AbstractLevel {
     protected _serverInterpolationLastUpdateTolerance: number = 1000;
 
     public start() {
-        this._prepareNetwork();
+        this._prepareNetworking();
     }
 
-    protected _prepareNetwork() {
+    protected _prepareNetworking() {
         if (
             this._serverEnabled &&
             this._serverHost !== undefined &&
