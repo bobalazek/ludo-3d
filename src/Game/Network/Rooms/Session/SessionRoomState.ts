@@ -10,6 +10,7 @@ export const CHAT_MESSAGE_ACTION = 'chat_message';
 export const WAITING_FOR_PLAYERS_STATE = 'waiting_for_players';
 export const WAITING_FOR_PLAYER_DICE_ROLL_STATE = 'waiting_for_player_dice_roll';
 export const WAITING_FOR_PLAYER_TOKEN_MOVE_STATE = 'waiting_for_player_token_move';
+export const GAME_FINISHED_STATE = 'game_finished';
 
 export class SessionRoomState extends Schema {
     @type({ map: SessionRoomPlayer })
@@ -24,12 +25,12 @@ export class SessionRoomState extends Schema {
     @type("string")
     lastTurnPlayerSessionId: string = '';
 
-    @type("boolean")
-    lastTurnPlayerHasLegalMoves: boolean = true;
-
     @type("uint8")
     lastDiceRollNumber: number = 0;
 
     @type("string")
     lastDiceRollHash: string = '';
+
+    @type("string")
+    winnerPlayerSessionId: string = '';
 }

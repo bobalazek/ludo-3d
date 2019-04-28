@@ -9,9 +9,9 @@ import {
     DICE_ROLL_ACTION,
     TOKEN_MOVE_ACTION,
     CHAT_MESSAGE_ACTION,
-    WAITING_FOR_PLAYERS_STATE,
     WAITING_FOR_PLAYER_DICE_ROLL_STATE,
     WAITING_FOR_PLAYER_TOKEN_MOVE_STATE,
+    GAME_FINISHED_STATE,
 } from './SessionRoomState';
 import { Board } from '../../../Gameplay/Board';
 
@@ -40,30 +40,12 @@ export class SessionRoom extends Room {
     }
 
     onMessage (client: Client, message: any) {
-        // TODO: do validations
-
         if (message.action === DICE_ROLL_ACTION) {
-            this.state.lastDiceRollNumber = this.getDiceRollNumber();
-            this.state.lastDiceRollHash = uuid().substring(0, 8);
-            this.state.state = WAITING_FOR_PLAYER_TOKEN_MOVE_STATE;
-
-            this.checkForLegalPlayerTokenMoves();
-
-            if (!this.state.lastTurnPlayerHasLegalMoves) {
-                // TODO: move to next player
-            }
+            this.doDiceRollAction(client, message);
         } else if (message.action === TOKEN_MOVE_ACTION) {
-            this.movePlayerToken(message.data.playerTokenIndex);
-
-            this.state.state = WAITING_FOR_PLAYER_DICE_ROLL_STATE;
-            this.state.lastTurnPlayerSessionId = this.getNextPlayerSessionId();
-
-            // TODO: check if a player has finished
+            this.doTokenMoveAction(client, message);
         } else if (message.action === CHAT_MESSAGE_ACTION) {
-            this.addChatMessage(
-                this.state.players[client.sessionId].name,
-                message.data.text
-            );
+            this.doChatMessageAction(client, message);
         }
     }
 
@@ -85,6 +67,45 @@ export class SessionRoom extends Room {
 
     onDispose () {}
 
+    // Main actions
+    doDiceRollAction(client: Client, message: any) {
+        const player: SessionRoomPlayer = this.state.players[this.state.lastTurnPlayerSessionId];
+
+        this.state.lastDiceRollNumber = this.getDiceRollNumber();
+        this.state.lastDiceRollHash = uuid().substring(0, 8);
+        this.state.state = WAITING_FOR_PLAYER_TOKEN_MOVE_STATE;
+
+        if (!this.ifPlayerHasLegalMoves(player)) {
+            this.addChatMessage(
+                'System',
+                'Player "' + this.state.players[client.sessionId].name + '" has no available moves.'
+            );
+
+            this.state.state = WAITING_FOR_PLAYER_DICE_ROLL_STATE;
+            this.state.lastTurnPlayerSessionId = this.getNextPlayerSessionId();
+        }
+    }
+
+    doTokenMoveAction(client: Client, message: any) {
+        this.movePlayerToken(message.data.playerTokenIndex);
+
+        const player: SessionRoomPlayer = this.state.players[this.state.lastTurnPlayerSessionId];
+        if (this.isPlayerFinished(player)) {
+            this.state.state = GAME_FINISHED_STATE;
+            this.state.winnerPlayerSessionId = this.state.lastTurnPlayerSessionId;
+        } else {
+            this.state.state = WAITING_FOR_PLAYER_DICE_ROLL_STATE;
+            this.state.lastTurnPlayerSessionId = this.getNextPlayerSessionId();
+        }
+    }
+
+    doChatMessageAction(client: Client, message: any) {
+        this.addChatMessage(
+            this.state.players[client.sessionId].name,
+            message.data.text
+        );
+    }
+
     // Helpers
     movePlayerToken(tokenIndex: number) {
         const player: SessionRoomPlayer = this.state.players[this.state.lastTurnPlayerSessionId];
@@ -94,7 +115,12 @@ export class SessionRoom extends Room {
         );
 
         const nextPoint = this.getNextWantedPointForPlayerToken(player, playerToken);
+        if (nextPoint === null) {
+            // Should NEVER happen. A player tried to "hack", to get to this point.
+            return false;
+        }
 
+        // Is there an other player on there? Send him back to base!
         const playerTokenOnPoint = this.getPlayerTokenOnPoint(nextPoint);
         if (playerTokenOnPoint !== null) {
             playerTokenOnPoint.point = 'player' + playerTokenOnPoint.playerIndex
@@ -102,6 +128,8 @@ export class SessionRoom extends Room {
         }
 
         playerToken.point = nextPoint;
+
+        return true;
     }
 
     getNextPlayerSessionId() {
@@ -146,7 +174,7 @@ export class SessionRoom extends Room {
     }
 
     getPlayerTokenByIndex(playerSessionid: string, index: number) {
-        const player = this.state.players[playerSessionid];
+        const player: SessionRoomPlayer = this.state.players[playerSessionid];
         for (let playerToken in player.tokens) {
             if (player.tokens[playerToken].index === index) {
                 return player.tokens[playerToken];
@@ -163,35 +191,32 @@ export class SessionRoom extends Room {
     /**
      * Goes through all player tokens and checks which once can be moved
      */
-    checkForLegalPlayerTokenMoves() {
-        let lastTurnPlayerHasLegalMoves = false;
+    ifPlayerHasLegalMoves(player: SessionRoomPlayer): boolean {
+        let hasLegalMoves: boolean = false;
 
-        for (let playerSessionid in this.state.players) {
-            const player = this.state.players[playerSessionid];
-            for (let playerTokenIndex in player.tokens) {
-                const playerToken = player.tokens[playerTokenIndex];
-                const playerTokenNextWantedPoint = this.getNextWantedPointForPlayerToken(
-                    player,
-                    playerToken
-                );
-                const canBeMoved = playerTokenNextWantedPoint !== null
-                playerToken.canBeMoved = canBeMoved;
+        for (let playerTokenIndex in player.tokens) {
+            const playerToken = player.tokens[playerTokenIndex];
+            const playerTokenNextWantedPoint = this.getNextWantedPointForPlayerToken(
+                player,
+                playerToken
+            );
+            const canBeMoved = playerTokenNextWantedPoint !== null
+            playerToken.canBeMoved = canBeMoved;
 
-                if (
-                    canBeMoved &&
-                    player.sessionId === this.state.lastTurnPlayerSessionId
-                ) {
-                    lastTurnPlayerHasLegalMoves = true;
-                }
+            if (canBeMoved) {
+                hasLegalMoves = true;
             }
         }
 
-        this.state.lastTurnPlayerHasLegalMoves = lastTurnPlayerHasLegalMoves;
+        return hasLegalMoves;
     }
 
-    getNextWantedPointForPlayerToken(player: SessionRoomPlayer, playerToken: SessionRoomPlayerToken) {
-        const currentPoint = playerToken.point;
-        const lastDiceRollNumber = this.state.lastDiceRollNumber;
+    getNextWantedPointForPlayerToken(
+        player: SessionRoomPlayer,
+        playerToken: SessionRoomPlayerToken
+    ) {
+        const currentPoint: string = playerToken.point;
+        const lastDiceRollNumber: number = this.state.lastDiceRollNumber;
 
         if (currentPoint.indexOf('_start') !== -1) {
             const nextWantedPoint = Board.players[player.index].pathStart;
@@ -202,6 +227,10 @@ export class SessionRoom extends Room {
                 playerTokenOnPoint.playerIndex === playerToken.playerIndex
             ) {
                 // Another token of yours already occupied this point
+                return null;
+            }
+
+            if (this.state.lastDiceRollNumber !== 6) {
                 return null;
             }
 
@@ -282,6 +311,19 @@ export class SessionRoom extends Room {
         }
 
         return null;
+    }
+
+    isPlayerFinished(player: SessionRoomPlayer) {
+        let tokensOnEnd: number = 0;
+
+        for (let playerTokenIndex in player.tokens) {
+            const playerToken = player.tokens[playerTokenIndex];
+            if (playerToken.point.indexOf('_end') !== -1) {
+                tokensOnEnd++;
+            }
+        }
+
+        return tokensOnEnd >= Object.keys(player.tokens).length;
     }
 
     addChatMessage(name: string, text: string) {

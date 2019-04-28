@@ -368,7 +368,6 @@ export class SessionLevel extends AbstractNetworkLevel {
 
             diceMesh.metadata.isHighlightable = this._canRollDice;
 
-            // Someone else than you rolled the dice
             if (
                 lastState !== null &&
                 state.lastDiceRollHash !== lastState.lastDiceRollHash
