@@ -255,11 +255,12 @@ export class SessionLevel extends AbstractNetworkingLevel {
 
                     highlightedMesh.isVisible = true;
                     highlightedMesh.position = pickedMesh.position.clone();
-                    highlightedMesh.scaling = pickedMesh.scaling.clone()
-                        .subtract(new BABYLON.Vector3(0.99, 0.99, 0.99)); // so it will not clip through
+                    highlightedMesh.scaling = pickedMesh.scaling.clone();
+                    highlightedMesh.rotation = pickedMesh.rotation.clone();
                     highlightedMesh.metadata = {
                         lastMesh: pickedMesh,
                     };
+
                     this._highlightLayer.addMesh(
                         highlightedMesh,
                         BABYLON.Color3.White(),
@@ -334,6 +335,8 @@ export class SessionLevel extends AbstractNetworkingLevel {
                 && state.state === WAITING_FOR_PLAYER_DICE_ROLL_STATE;
             this._canMoveToken = state.lastTurnPlayerSessionId === mySessionId
                 && state.state === WAITING_FOR_PLAYER_TOKEN_MOVE_STATE;
+            console.log(this._canRollDice)
+            console.log(this._canMoveToken)
 
             this._disablePlayerTokens();
             for (let playerSessionId in state.players) {
