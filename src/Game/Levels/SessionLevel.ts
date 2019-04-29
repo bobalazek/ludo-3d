@@ -255,6 +255,8 @@ export class SessionLevel extends AbstractNetworkingLevel {
 
                     highlightedMesh.isVisible = true;
                     highlightedMesh.position = pickedMesh.position.clone();
+                    highlightedMesh.scaling = pickedMesh.scaling.clone()
+                        .subtract(new BABYLON.Vector3(0.99, 0.99, 0.99)); // so it will not clip through
                     highlightedMesh.metadata = {
                         lastMesh: pickedMesh,
                     };
@@ -357,8 +359,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
                     }
 
                     if (playerToken.metadata.point !== playerTokenServerData.point) {
-                        Board.moveToPoint(
-                            scene,
+                        this._moveToPoint(
                             playerToken,
                             playerTokenServerData.point
                         );
@@ -372,8 +373,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
                 lastState !== null &&
                 state.lastDiceRollHash !== lastState.lastDiceRollHash
             ) {
-                Board.diceRoll(
-                    scene,
+                this._diceRoll(
                     diceMesh,
                     state.lastDiceRollNumber
                 );
@@ -383,6 +383,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
         });
     }
 
+    /***** Helpers *****/
     protected _addShadowsToMesh(mesh: BABYLON.AbstractMesh) {
         this._shadowGenerator.addShadowCaster(mesh);
     }
@@ -396,5 +397,112 @@ export class SessionLevel extends AbstractNetworkingLevel {
                 playerToken.setEnabled(false);
             }
         }
+    }
+
+    protected _moveToPoint(token: BABYLON.AbstractMesh, pointKey: string) {
+        const jumpHeight = 8;
+        const point = Board.points[pointKey];
+        if (!point) {
+            throw Error('The point "'  + pointKey + '" does not exist!');
+        }
+
+        const startPosition = token.position;
+        const endPosition = new BABYLON.Vector3(
+            point.position[0],
+            token.position.y,
+            point.position[1]
+        );
+
+        let midPosition = startPosition.clone()
+            .add(endPosition)
+            .divide(new BABYLON.Vector3(2, 2, 2));
+        midPosition.y = startPosition.y + jumpHeight;
+
+        let animation = new BABYLON.Animation(
+            'moveAnimation',
+            "position",
+            60,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+        );
+
+        animation.setKeys([
+            {
+                frame: 0,
+                value: startPosition,
+            },
+            {
+                frame: 15,
+                value: midPosition,
+            },
+            {
+                frame: 60,
+                value: endPosition,
+            },
+        ]);
+
+        let easingFunction = new BABYLON.QuarticEase();
+        easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+        animation.setEasingFunction(easingFunction);
+
+        token.animations.push(animation);
+
+        token.metadata.point = pointKey;
+
+        this.getScene().beginAnimation(token, 0, 60, false);
+    }
+
+    protected _diceRoll(dice: BABYLON.AbstractMesh, number: number) {
+        if (
+            dice.metadata &&
+            dice.metadata.isAnimating
+        ) {
+            return;
+        }
+
+        const startRotation = dice.rotation;
+
+        let animation = new BABYLON.Animation(
+            'rollAnimation',
+            "rotation",
+            120,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+        );
+
+        let animationKeys = [{
+            frame: 0,
+            value: startRotation,
+        }];
+        for (let i = 1; i <= 21; i++) {
+            animationKeys.push({
+                frame: i * 5,
+                value: animationKeys[i-1].value.clone()
+                    .add(new BABYLON.Vector3(
+                        Math.random(),
+                        Math.random(),
+                        Math.random()
+                    )),
+            });
+        }
+        animationKeys.push({
+            frame: 120,
+            value: startRotation,
+        });
+        animation.setKeys(animationKeys);
+
+        let easingFunction = new BABYLON.QuarticEase();
+        easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+        animation.setEasingFunction(easingFunction);
+
+        dice.animations.push(animation);
+
+        dice.metadata.isAnimating = true;
+
+        // TODO: set to the number specified
+
+        this.getScene().beginAnimation(dice, 0, 120, false, 1, () => {
+            dice.metadata.isAnimating = false;
+        });
     }
 }
