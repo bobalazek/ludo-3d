@@ -5,10 +5,15 @@ const common = require('./webpack.config.common.js');
 
 module.exports = merge(common, {
   mode: "development",
-  devtool: "inline-source-map",
+  devtool: "source-map",
   devServer: {
       contentBase: path.resolve(__dirname, "dist"),
       compress: true,
       port: process.env.CLIENT_PORT || 9000,
+  },
+  module: {
+      rules: [
+          { enforce: "pre", test: /\.js$/, loader: "source-map-loader" },
+      ],
   },
 });

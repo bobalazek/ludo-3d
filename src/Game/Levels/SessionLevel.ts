@@ -1,3 +1,6 @@
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import { Key } from 'ts-keycode-enum';
 import 'babylonjs-materials';
 import 'babylonjs-loaders';
 
@@ -12,12 +15,16 @@ import {
     SessionRoomState,
     DICE_ROLL_ACTION,
     TOKEN_MOVE_ACTION,
+    CHAT_MESSAGE_ACTION,
     WAITING_FOR_PLAYER_DICE_ROLL_STATE,
     WAITING_FOR_PLAYER_TOKEN_MOVE_STATE,
 } from '../Networking/Rooms/Session/SessionRoomState';
 
+import { ChatComponent } from '../UI/components/ChatComponent';
+
 export class SessionLevel extends AbstractNetworkingLevel {
     // General
+    protected _hideDebugLayer: boolean = true;
     protected _playerIndex: number = 1;
     protected _skybox: BABYLON.Mesh;
     protected _shadowGenerator: BABYLON.ShadowGenerator;
@@ -49,10 +56,12 @@ export class SessionLevel extends AbstractNetworkingLevel {
         this._prepareHighlightLayer();
         this._prepareEvents();
         this._prepareNetworkingEvents();
+        this._prepareUi();
     }
 
     public onPreStart(callback: () => void) {
         // TODO: load meshes
+
         callback();
     }
 
@@ -311,7 +320,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
                 ) {
                     self._serverRoom.send({
                         action: TOKEN_MOVE_ACTION,
-                        data: {
+                        detail: {
                             playerTokenIndex: pickResult.pickedMesh.metadata.playerTokenIndex,
                         },
                     });
@@ -377,6 +386,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
 
             diceMesh.metadata.isHighlightable = this._canRollDice;
 
+            // Dice
             if (
                 lastState !== null &&
                 state.lastDiceRollHash !== lastState.lastDiceRollHash
@@ -390,9 +400,56 @@ export class SessionLevel extends AbstractNetworkingLevel {
             lastState = JSON.parse(JSON.stringify(state));
         });
 
+        this._serverRoom.onJoin.add(() => {
+            this._serverRoom.state.chatMessages.onAdd = (chatMessage) => {
+                window.dispatchEvent(new CustomEvent('chat:messages:update', {
+                    detail: {
+                        message: chatMessage,
+                    },
+                }));
+            };
+        });
+
         this._serverRoom.onError.add((error) => {
             console.log(error);
         });
+    }
+
+    protected _prepareUi() {
+        // Chat
+        ReactDOM.render(
+            React.createElement(
+                'div',
+                {},
+                React.createElement(ChatComponent)
+            ),
+            document.getElementById('ui')
+        );
+
+        let chatInputShown: boolean = false;
+        window.addEventListener('keydown', (e) => {
+            if (
+                (
+                    !chatInputShown &&
+                    e.keyCode === Key.T
+                ) || (
+                    chatInputShown &&
+                    e.keyCode === Key.Escape
+                )
+            ) {
+                window.dispatchEvent(new Event('chat:input:toggle'));
+                chatInputShown = !chatInputShown;
+            }
+        }, false);
+
+        window.addEventListener('chat:messages:new', (event: CustomEvent) => {
+            this._serverRoom.send({
+                action: CHAT_MESSAGE_ACTION,
+                detail: {
+                    text: event.detail.text,
+                },
+            });
+        }, false);
     }
 
     /***** Helpers *****/

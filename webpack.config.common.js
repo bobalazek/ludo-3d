@@ -24,7 +24,7 @@ module.exports = {
     },
     module: {
         rules: [
-            { test: /\.tsx?$/, loader: "ts-loader" },
+            { test: /\.tsx?$/, loader: "ts-loader" /* awesome-typescript-loader has issues with colyseus */ },
         ],
     },
     plugins: [
@@ -34,8 +34,8 @@ module.exports = {
             },
         ]),
         new DotenvPlugin({
-          sample: '.env.default',
-          path: '.env',
+            sample: '.env.default',
+            path: '.env',
       }),
     ],
     externals: {

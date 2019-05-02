@@ -91,7 +91,8 @@ export class SessionRoom extends Room {
         if (!this.ifPlayerHasLegalMoves(player)) {
             this.addChatMessage(
                 'System',
-                'Player "' + this.state.players[client.sessionId].name + '" has no available moves.'
+                'Player "' + this.state.players[client.sessionId].name + '" has no available moves.',
+                1000 // add delay, so we will get the message approx after the dice roll
             );
 
             this.state.state = WAITING_FOR_PLAYER_DICE_ROLL_STATE;
@@ -100,7 +101,7 @@ export class SessionRoom extends Room {
     }
 
     doTokenMoveAction(client: Client, message: any) {
-        this.movePlayerToken(message.data.playerTokenIndex);
+        this.movePlayerToken(message.detail.playerTokenIndex);
 
         const player: SessionRoomPlayer = this.state.players[this.state.lastTurnPlayerSessionId];
         if (this.isPlayerFinished(player)) {
@@ -115,7 +116,7 @@ export class SessionRoom extends Room {
     doChatMessageAction(client: Client, message: any) {
         this.addChatMessage(
             this.state.players[client.sessionId].name,
-            message.data.text
+            message.detail.text
         );
     }
 
@@ -341,11 +342,15 @@ export class SessionRoom extends Room {
         return tokensOnEnd >= Object.keys(player.tokens).length;
     }
 
-    addChatMessage(name: string, text: string) {
+    addChatMessage(sender: string, text: string, delay: number = 0) {
         let chatMessage = new SessionRoomPlayerChatMessage();
-        chatMessage.name = name;
+        chatMessage.id = this.state.chatMessages.length;
+        chatMessage.sender = sender;
         chatMessage.text = text;
 
-        this.state.chatMessages.push(chatMessage);
+        setTimeout(() => {
+            // TODO: optimize and keep only the last xx messages?
+            this.state.chatMessages.push(chatMessage);
+        }, delay);
     }
 }
