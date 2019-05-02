@@ -9,9 +9,9 @@
   },
   "author": "Borut Balazek",
   "dependencies": {
-    "babylonjs": "^4.0.0-rc.0",
-    "babylonjs-loaders": "^4.0.0-rc.0",
-    "babylonjs-materials": "^4.0.0-rc.0",
+    "babylonjs": "^4.0.3",
+    "babylonjs-loaders": "^4.0.3",
+    "babylonjs-materials": "^4.0.3",
     "colyseus": "^0.10.6",
     "colyseus.js": "^0.10.4",
     "dotenv": "^7.0.0",

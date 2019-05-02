@@ -1,4 +1,5 @@
 import 'babylonjs-materials';
+import 'babylonjs-loaders';
 
 import {
     GAME_SERVER_PORT,
@@ -21,7 +22,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
     protected _skybox: BABYLON.Mesh;
     protected _shadowGenerator: BABYLON.ShadowGenerator;
     protected _highlightLayer: BABYLON.HighlightLayer;
-    protected _meshes: any = {};
+    protected _meshes: {[key: string]: BABYLON.Mesh} = {};
     protected _camera: BABYLON.ArcRotateCamera;
 
     // Gameplay
@@ -48,6 +49,11 @@ export class SessionLevel extends AbstractNetworkingLevel {
         this._prepareHighlightLayer();
         this._prepareEvents();
         this._prepareNetworkingEvents();
+    }
+
+    public onPreStart(callback: () => void) {
+        // TODO: load meshes
+        callback();
     }
 
     protected _prepareSkybox() {
@@ -145,6 +151,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
         );
         boardMiddleBox.position.y = boardMiddleBoxSize / 2;
 
+        // Dice
         const diceSize = Board.pointSize;
         let dice = BABYLON.MeshBuilder.CreateBox(
             "dice",
@@ -267,7 +274,7 @@ export class SessionLevel extends AbstractNetworkingLevel {
                         true
                     );
 
-                    this._meshes['highlightedMesh'] = highlightedMesh;
+                    this._meshes.highlightedMesh = highlightedMesh;
                 } else {
                     if (highlightedMesh.metadata.lastMesh !== pickResult.pickedMesh) {
                         this._highlightLayer.removeMesh(highlightedMesh);
@@ -335,8 +342,6 @@ export class SessionLevel extends AbstractNetworkingLevel {
                 && state.state === WAITING_FOR_PLAYER_DICE_ROLL_STATE;
             this._canMoveToken = state.lastTurnPlayerSessionId === mySessionId
                 && state.state === WAITING_FOR_PLAYER_TOKEN_MOVE_STATE;
-            console.log(this._canRollDice)
-            console.log(this._canMoveToken)
 
             this._disablePlayerTokens();
             for (let playerSessionId in state.players) {
@@ -383,6 +388,10 @@ export class SessionLevel extends AbstractNetworkingLevel {
             }
 
             lastState = JSON.parse(JSON.stringify(state));
+        });
+
+        this._serverRoom.onError.add((error) => {
+            console.log(error);
         });
     }
 

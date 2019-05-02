@@ -18,7 +18,7 @@ import { Board } from '../../../Gameplay/Board';
 export class SessionRoom extends Room {
     maxClients: number = 4;
 
-    onInit () {
+    onInit() {
         this.setState(new SessionRoomState());
 
         let self = this;
@@ -29,7 +29,17 @@ export class SessionRoom extends Room {
         }, 1000);
     }
 
-    onJoin (client: Client) {
+    requestJoin(options: any) {
+        // Prevent the client from joining the same room from another browser tab
+        return this.clients.filter(client => client.id === options.clientId).length === 0;
+    }
+
+    onAuth (options: any) {
+        // TODO
+        return true;
+    }
+
+    onJoin(client: Client) {
         let player = new SessionRoomPlayer();
         player.index = Object.keys(this.state.players).length + 1;
         player.name = 'Player ' + player.index;
@@ -37,9 +47,14 @@ export class SessionRoom extends Room {
         player.generateTokens();
 
         this.state.players[client.sessionId] = player;
+
+        this.addChatMessage(
+            'System',
+            player.name + ' joined the session.'
+        );
     }
 
-    onMessage (client: Client, message: any) {
+    onMessage(client: Client, message: any) {
         if (message.action === DICE_ROLL_ACTION) {
             this.doDiceRollAction(client, message);
         } else if (message.action === TOKEN_MOVE_ACTION) {
@@ -49,7 +64,7 @@ export class SessionRoom extends Room {
         }
     }
 
-    async onLeave (client: Client, consented: boolean) {
+    async onLeave(client: Client, consented: boolean) {
         this.state.players[client.sessionId].connected = false;
 
         try {
@@ -64,8 +79,6 @@ export class SessionRoom extends Room {
             delete this.state.players[client.sessionId];
         }
     }
-
-    onDispose () {}
 
     // Main actions
     doDiceRollAction(client: Client, message: any) {
@@ -257,6 +270,8 @@ export class SessionRoom extends Room {
 
             return nextWantedPoint;
         }
+
+        // TODO: still not working correctly
 
         const currentPointNumber = parseInt(
             currentPoint.replace('path', '')

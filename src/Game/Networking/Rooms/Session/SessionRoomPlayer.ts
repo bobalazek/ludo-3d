@@ -2,10 +2,10 @@ import { Schema, MapSchema, type } from "@colyseus/schema";
 
 import { SessionRoomPlayerToken } from './SessionRoomPlayerToken';
 
-export class SessionRoomPlayer extends Schema {
-    @type("boolean")
-    connected: boolean = true;
+export const READY_STATE = 'connected';
+export const IN_GAME_STATE = 'disconnected';
 
+export class SessionRoomPlayer extends Schema {
     @type("uint8")
     index: number = 1;
 
@@ -17,6 +17,12 @@ export class SessionRoomPlayer extends Schema {
 
     @type({ map: SessionRoomPlayerToken })
     tokens = new MapSchema<SessionRoomPlayerToken>();
+
+    @type("boolean")
+    connected: boolean = true;
+
+    @type("string")
+    state: string = READY_STATE;
 
     generateTokens() {
         const tokensCount = 4;
