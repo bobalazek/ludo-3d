@@ -8,7 +8,6 @@ export class AbstractLevel {
     protected _onLevelReadyIntervalTime: number = 100;
     protected _isLoaded: boolean = false;
     protected _isAssetsLoaded: boolean = false;
-    protected _hideDebugLayer: boolean = false;
 
     constructor() {
         this._scene = new BABYLON.Scene(<any>GameManager.engine);
@@ -22,6 +21,10 @@ export class AbstractLevel {
                 this.onReady();
             }
         }, this._onLevelReadyIntervalTime);
+
+        if (GameManager.debug) {
+            this._scene.debugLayer.show();
+        }
     }
 
     /********** User overwritable methods **********/
@@ -30,16 +33,7 @@ export class AbstractLevel {
      * Starts the game logic.
      */
     public start() {
-        if (
-            GameManager.debug &&
-            !this._hideDebugLayer
-        ) {
-            this._scene.debugLayer.show();
-        }
-
-        // Your game logic will be here, so you'll always need to run:
-        //   super.start();
-        // in your level at the top of the method.
+        // Your game logic will be here
     }
 
     /**

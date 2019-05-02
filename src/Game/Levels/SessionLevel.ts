@@ -24,12 +24,11 @@ import { ChatComponent } from '../UI/components/ChatComponent';
 
 export class SessionLevel extends AbstractNetworkingLevel {
     // General
-    protected _hideDebugLayer: boolean = true;
     protected _playerIndex: number = 1;
     protected _skybox: BABYLON.Mesh;
     protected _shadowGenerator: BABYLON.ShadowGenerator;
     protected _highlightLayer: BABYLON.HighlightLayer;
-    protected _meshes: {[key: string]: BABYLON.Mesh} = {};
+    protected _meshes: {[key: string]: any} = {};
     protected _camera: BABYLON.ArcRotateCamera;
 
     // Gameplay
@@ -43,6 +42,9 @@ export class SessionLevel extends AbstractNetworkingLevel {
 
     // Materials
     protected _materials: {[key: string]: BABYLON.Material} = {};
+
+    // Other
+    protected _boardMiddleBoxSize: number = Board.pointSize * 3;
 
     public start() {
         super.start();
@@ -60,9 +62,24 @@ export class SessionLevel extends AbstractNetworkingLevel {
     }
 
     public onPreStart(callback: () => void) {
-        // TODO: load meshes
+        const self = this;
+        const diceSize = Board.pointSize;
 
-        callback();
+        BABYLON.SceneLoader.ImportMesh(['dice'], "./models/dice/", "dice.glb", this.getScene(), function (meshes) {
+            let dice = meshes[1];
+
+            dice.metadata = {
+                isHighlightable: false,
+                lastDiceRollNumber: 1,
+            };
+
+            dice.scaling = new BABYLON.Vector3(5, 5, 5);
+            dice.position.y = self._boardMiddleBoxSize + (diceSize / 2);
+
+            self._meshes.dice = dice;
+
+            callback();
+        });
     }
 
     protected _prepareSkybox() {
@@ -148,35 +165,16 @@ export class SessionLevel extends AbstractNetworkingLevel {
             pointMesh.material = this.getScene().getMaterialByName(playerKey + 'Material');
         }
 
-        const boardMiddleBoxSize = Board.pointSize * 3;
         let boardMiddleBox = BABYLON.MeshBuilder.CreateBox(
             "boardMiddleBox",
             {
-                height: boardMiddleBoxSize,
-                width: boardMiddleBoxSize,
-                depth: boardMiddleBoxSize,
+                height: this._boardMiddleBoxSize,
+                width: this._boardMiddleBoxSize,
+                depth: this._boardMiddleBoxSize,
             },
             this.getScene()
         );
-        boardMiddleBox.position.y = boardMiddleBoxSize / 2;
-
-        // Dice
-        const diceSize = Board.pointSize;
-        let dice = BABYLON.MeshBuilder.CreateBox(
-            "dice",
-            {
-                height: diceSize,
-                width: diceSize,
-                depth: diceSize,
-            },
-            this.getScene()
-        );
-        dice.metadata = {
-            isHighlightable: false,
-            lastDiceRollNumber: 1,
-        };
-        dice.position.y = boardMiddleBoxSize + (diceSize / 2);
-        this._meshes.dice = dice;
+        boardMiddleBox.position.y = this._boardMiddleBoxSize / 2;
     }
 
     protected _prepareBoardTokens() {
@@ -529,6 +527,8 @@ export class SessionLevel extends AbstractNetworkingLevel {
             return;
         }
 
+        const diceRotation = Board.diceRotation[number];
+
         const startRotation = dice.rotation;
 
         let animation = new BABYLON.Animation(
@@ -553,10 +553,11 @@ export class SessionLevel extends AbstractNetworkingLevel {
                         Math.random()
                     )),
             });
+
         }
         animationKeys.push({
             frame: 120,
-            value: startRotation,
+            value: new BABYLON.Vector3(diceRotation[0], diceRotation[1], diceRotation[2]),
         });
         animation.setKeys(animationKeys);
 
@@ -567,8 +568,6 @@ export class SessionLevel extends AbstractNetworkingLevel {
         dice.animations.push(animation);
 
         dice.metadata.isAnimating = true;
-
-        // TODO: set to the number specified
 
         this.getScene().beginAnimation(dice, 0, 120, false, 1, () => {
             dice.metadata.isAnimating = false;

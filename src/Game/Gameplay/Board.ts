@@ -26,6 +26,14 @@ export class Board {
             cameraAlpha: Math.PI / 4,
         },
     };
+    public static diceRotation = {
+        1: [Math.PI / 2, 0, 0],
+        2: [Math.PI, 0, Math.PI / 2],
+        3: [-Math.PI, 0, 0],
+        4: [0, 0, 0],
+        5: [0, 0, Math.PI / 2],
+        6: [-Math.PI / 2, 0, 0],
+    };
     public static points = {
         /********** Player 1 **********/
         player1_start1: {
