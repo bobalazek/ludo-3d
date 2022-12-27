@@ -26,7 +26,7 @@
     "awesome-typescript-loader": "^5.2.1",
     "concurrently": "^4.1.0",
     "copy-webpack-plugin": "^5.0.2",
-    "nodemon": "^1.18.11",
+    "nodemon": "^2.0.20",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.3.3",
     "ts-node": "^8.1.0",
